@@ -141,3 +141,5 @@ dmypy.json
 app/FastVLM/model
 
 #Files and folders
+checkpoints/
+images
