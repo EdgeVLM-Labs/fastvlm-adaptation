@@ -8,7 +8,7 @@ set -e
 MODEL_PATH="checkpoints/llava-fastvithd_0.5b_stage3"
 DATA_PATH="dataset/fastvlm_train.json"
 IMAGE_FOLDER="dataset"
-OUTPUT_DIR="checkpoints/exercise-video-finetuned"
+OUTPUT_DIR="models/exercise-video-finetuned"
 NUM_VIDEO_FRAMES=4  # Reduced for memory efficiency on 8GB GPU
 
 # Training hyperparameters (optimized for 8GB VRAM)
