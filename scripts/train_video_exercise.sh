@@ -23,8 +23,8 @@ mkdir -p "$OUTPUT_DIR"
 
 # Generate timestamp for log file
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-LOG_FILE="training_log_${TIMESTAMP}.log"
-HPARAMS_FILE="hyperparameters_${TIMESTAMP}.json"
+LOG_FILE="models/training_log_${TIMESTAMP}.log"
+HPARAMS_FILE="models/hyperparameters_${TIMESTAMP}.json"
 
 # Save hyperparameters to JSON
 cat > "$HPARAMS_FILE" << EOF
