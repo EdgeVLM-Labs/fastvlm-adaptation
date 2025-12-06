@@ -68,12 +68,12 @@ apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-
 echo "✅ Setup complete!"
 echo "🚀 FastVLM environment is ready."
 
-# # Initialize WandB
-# echo "🔑 Logging into WandB..."
-# wandb login
+# Initialize WandB
+echo "🔑 Logging into WandB..."
+wandb login
 
-# # Initialize HuggingFace Hub
-# echo "🤗 Logging into HuggingFace Hub..."
-# hf auth login
+# Initialize HuggingFace Hub
+echo "🤗 Logging into HuggingFace Hub..."
+hf auth login
 
 source ~/.bashrc
