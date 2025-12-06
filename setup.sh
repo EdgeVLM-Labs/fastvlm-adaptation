@@ -19,10 +19,14 @@ source $HOME/miniconda/etc/profile.d/conda.sh
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
+cd fastvlm-adaptation/
+
 conda create -n fastvlm python=3.10
 conda activate fastvlm
 pip install --upgrade pip
 pip install -e .
+
+apt install unzip
 
 bash get_models.sh
 

@@ -67,7 +67,7 @@ python -u llava/train/train_mem.py \
     --tf32 True \
     --model_max_length $MODEL_MAX_LENGTH \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \
+    --dataloader_num_workers 2 \
     --lazy_preprocess True \
     --report_to none
 
