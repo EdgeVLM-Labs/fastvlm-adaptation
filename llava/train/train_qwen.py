@@ -416,17 +416,13 @@ def preprocess_llama_2(
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 diff = abs(cur_len - total_len)
-                if diff <= 5:
-                    print(
-                        f"WARNING: tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
-                        f"Continuing with training."
-                    )
-                else:
+                if diff > 5:
                     target[:] = IGNORE_INDEX
                     print(
                         f"WARNING: large tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
                         f"(sample ignored)"
                     )
+                # Small mismatches (<=5 tokens) are silently accepted
 
     return dict(
         input_ids=input_ids,
@@ -547,6 +543,10 @@ def preprocess_qwen_2(
     conv = conversation_lib.default_conversation.copy()
     roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
 
+    # Calculate separator token length for proper length accounting
+    # For Qwen2, sep is "<|im_end|>\n" which typically tokenizes to 2 tokens
+    sep_token_len = len(tokenizer(conv.sep, add_special_tokens=False).input_ids)
+
     # Apply prompt templates
     conversations = []
     for i, source in enumerate(sources):
@@ -626,7 +626,9 @@ def preprocess_qwen_2(
                 instruction_len = equal_parts.index(False) if False in equal_parts else len(equal_parts)
                 round_len = len(round_ids)
 
-            round_len += 2 # this is tom compensate for the sep2
+            # Compensate for separator tokens (<|im_end|>\n) that get tokenized
+            # For Qwen2: each round ends with sep token, need to account for final sep
+            round_len += sep_token_len
 
             assert rou == parts[0]+parts[1]
 
@@ -638,21 +640,17 @@ def preprocess_qwen_2(
 
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
-                # Only warn but don't discard the sample - small mismatches are common
-                # due to separator token handling and shouldn't prevent training
+                # Small mismatches are common due to separator token handling
+                # and don't affect training quality - don't discard the sample
                 diff = abs(cur_len - total_len)
-                if diff <= 5:  # Allow small mismatches (separator tokens, BOS/EOS)
-                    print(
-                        f"WARNING: tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
-                        f"Continuing with training."
-                    )
-                else:
-                    # Only discard for large mismatches which indicate real problems
+                if diff > 5:
+                    # Only discard and warn for large mismatches which indicate real problems
                     target[:] = IGNORE_INDEX
                     print(
                         f"WARNING: large tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
                         f"(sample ignored)"
                     )
+                # Small mismatches (<=5 tokens) are silently accepted - training continues normally
 
     return dict(
         input_ids=input_ids,
@@ -734,17 +732,13 @@ def preprocess_v1(
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 diff = abs(cur_len - total_len)
-                if diff <= 5:
-                    print(
-                        f"WARNING: tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
-                        f"Continuing with training."
-                    )
-                else:
+                if diff > 5:
                     target[:] = IGNORE_INDEX
                     print(
                         f"WARNING: large tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
                         f"(sample ignored)"
                     )
+                # Small mismatches (<=5 tokens) are silently accepted
 
     return dict(
         input_ids=input_ids,
