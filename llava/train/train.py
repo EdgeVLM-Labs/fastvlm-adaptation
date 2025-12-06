@@ -1007,8 +1007,10 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
     # Create eval dataset if validation_data_path is provided
     eval_dataset = None
     if data_args.validation_data_path:
+        # Wrap in list since LazySupervisedDataset expects List[str]
+        val_data_path = [data_args.validation_data_path] if isinstance(data_args.validation_data_path, str) else data_args.validation_data_path
         eval_dataset = LazySupervisedDataset(tokenizer=tokenizer,
-                                             data_path=data_args.validation_data_path,
+                                             data_path=val_data_path,
                                              data_args=data_args)
         rank0_print(f"Created eval dataset with {len(eval_dataset)} samples")
 
@@ -1016,8 +1018,6 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
     return dict(train_dataset=train_dataset,
                 eval_dataset=eval_dataset,
                 data_collator=data_collator)
-
-
 def train(attn_implementation=None):
     global local_rank
 
