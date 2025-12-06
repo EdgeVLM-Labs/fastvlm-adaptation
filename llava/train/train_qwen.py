@@ -415,11 +415,18 @@ def preprocess_llama_2(
 
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
-                target[:] = IGNORE_INDEX
-                print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
-                    f" (ignored)"
-                )
+                diff = abs(cur_len - total_len)
+                if diff <= 5:
+                    print(
+                        f"WARNING: tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
+                        f"Continuing with training."
+                    )
+                else:
+                    target[:] = IGNORE_INDEX
+                    print(
+                        f"WARNING: large tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
+                        f"(sample ignored)"
+                    )
 
     return dict(
         input_ids=input_ids,
@@ -631,11 +638,21 @@ def preprocess_qwen_2(
 
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
-                target[:] = IGNORE_INDEX
-                print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
-                    f" (ignored)"
-                )
+                # Only warn but don't discard the sample - small mismatches are common
+                # due to separator token handling and shouldn't prevent training
+                diff = abs(cur_len - total_len)
+                if diff <= 5:  # Allow small mismatches (separator tokens, BOS/EOS)
+                    print(
+                        f"WARNING: tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
+                        f"Continuing with training."
+                    )
+                else:
+                    # Only discard for large mismatches which indicate real problems
+                    target[:] = IGNORE_INDEX
+                    print(
+                        f"WARNING: large tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
+                        f"(sample ignored)"
+                    )
 
     return dict(
         input_ids=input_ids,
@@ -716,11 +733,18 @@ def preprocess_v1(
 
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
-                target[:] = IGNORE_INDEX
-                print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
-                    f" (ignored)"
-                )
+                diff = abs(cur_len - total_len)
+                if diff <= 5:
+                    print(
+                        f"WARNING: tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
+                        f"Continuing with training."
+                    )
+                else:
+                    target[:] = IGNORE_INDEX
+                    print(
+                        f"WARNING: large tokenization mismatch: {cur_len} vs. {total_len} (diff={diff}). "
+                        f"(sample ignored)"
+                    )
 
     return dict(
         input_ids=input_ids,

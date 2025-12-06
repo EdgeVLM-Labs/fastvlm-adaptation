@@ -61,6 +61,9 @@ else:
 echo ""
 
 apt-get update
+pip install openpyxl scikit-learn sentence-transformers
+apt-get install texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
+
 
 echo "✅ Setup complete!"
 echo "🚀 FastVLM environment is ready."
