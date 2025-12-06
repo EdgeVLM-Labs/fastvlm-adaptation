@@ -4,6 +4,21 @@
 
 set -e
 
+# Run setup verification first
+echo "Running setup verification..."
+echo ""
+bash scripts/verify_setup.sh
+
+echo ""
+read -p "Continue with training? (y/n) " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Training cancelled."
+    exit 0
+fi
+
+echo ""
+
 # Configuration
 MODEL_PATH="checkpoints/llava-fastvithd_0.5b_stage3"
 DATA_PATH="dataset/fastvlm_train.json"
