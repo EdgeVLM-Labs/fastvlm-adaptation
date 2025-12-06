@@ -18,6 +18,43 @@ LEARNING_RATE=2e-5
 NUM_EPOCHS=3
 MODEL_MAX_LENGTH=2048
 
+# Create output directory if it doesn't exist
+mkdir -p "$OUTPUT_DIR"
+
+# Generate timestamp for log file
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+LOG_FILE="$OUTPUT_DIR/training_log_${TIMESTAMP}.txt"
+HPARAMS_FILE="$OUTPUT_DIR/hyperparameters_${TIMESTAMP}.json"
+
+# Save hyperparameters to JSON
+cat > "$HPARAMS_FILE" << EOF
+{
+  "timestamp": "$TIMESTAMP",
+  "model_path": "$MODEL_PATH",
+  "data_path": "$DATA_PATH",
+  "image_folder": "$IMAGE_FOLDER",
+  "output_dir": "$OUTPUT_DIR",
+  "num_video_frames": $NUM_VIDEO_FRAMES,
+  "batch_size": $BATCH_SIZE,
+  "gradient_accumulation_steps": $GRAD_ACCUM_STEPS,
+  "effective_batch_size": $((BATCH_SIZE * GRAD_ACCUM_STEPS)),
+  "learning_rate": "$LEARNING_RATE",
+  "num_epochs": $NUM_EPOCHS,
+  "model_max_length": $MODEL_MAX_LENGTH,
+  "vision_tower": "mobileclip_l_1024",
+  "mm_projector_type": "mlp2x_gelu",
+  "mm_vision_select_layer": -2,
+  "image_aspect_ratio": "pad",
+  "bf16": true,
+  "tf32": true,
+  "gradient_checkpointing": true,
+  "weight_decay": 0.0,
+  "warmup_ratio": 0.03,
+  "lr_scheduler_type": "cosine",
+  "dataloader_num_workers": 2
+}
+EOF
+
 echo "=============================================="
 echo "FastVLM Video Fine-tuning for Exercise Analysis"
 echo "=============================================="
@@ -30,13 +67,15 @@ echo "Gradient accumulation: $GRAD_ACCUM_STEPS"
 echo "Effective batch size: $((BATCH_SIZE * GRAD_ACCUM_STEPS))"
 echo "Learning rate: $LEARNING_RATE"
 echo "Epochs: $NUM_EPOCHS"
+echo "Log file: $LOG_FILE"
+echo "Hyperparameters: $HPARAMS_FILE"
 echo "=============================================="
 
 # Set environment variables for better logging
 export PYTHONUNBUFFERED=1
 export TRANSFORMERS_VERBOSITY=info
 
-# Run training
+# Run training with output to both console and log file
 python -u llava/train/train_mem.py \
     --model_name_or_path "$MODEL_PATH" \
     --version qwen_v2 \
@@ -69,9 +108,11 @@ python -u llava/train/train_mem.py \
     --gradient_checkpointing True \
     --dataloader_num_workers 2 \
     --lazy_preprocess True \
-    --report_to none
+    --report_to none 2>&1 | tee "$LOG_FILE"
 
 echo "=============================================="
 echo "Training complete!"
 echo "Model saved to: $OUTPUT_DIR"
+echo "Log saved to: $LOG_FILE"
+echo "Hyperparameters saved to: $HPARAMS_FILE"
 echo "=============================================="
