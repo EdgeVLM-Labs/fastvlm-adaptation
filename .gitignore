@@ -144,3 +144,4 @@ app/FastVLM/model
 checkpoints/
 images
 finetune/__pycache__/
+dataset/

@@ -34,7 +34,7 @@ from llava.train.llava_trainer import LLaVATrainer
 
 from llava import conversation as conversation_lib
 from llava.model import *
-from llava.mm_utils import tokenizer_image_token, process_anyres_image
+from llava.mm_utils import tokenizer_image_token, process_anyres_image, load_video_frames, is_video_file
 
 from PIL import Image
 
@@ -81,6 +81,7 @@ class DataArguments:
     image_grid_pinpoints: Optional[str] = field(default=None)
     image_crop_resolution: Optional[int] = field(default=None)
     image_split_resolution: Optional[int] = field(default=None)
+    num_video_frames: int = field(default=8, metadata={"help": "Number of frames to extract from video files"})
 
 
 @dataclass
@@ -315,7 +316,8 @@ def _add_speaker_and_signal(header, source, get_conversation=True):
 
 def preprocess_multimodal(
     sources: Sequence[str],
-    data_args: DataArguments
+    data_args: DataArguments,
+    num_frames: int = 1
 ) -> Dict:
     is_multimodal = data_args.is_multimodal
     if not is_multimodal:
@@ -332,6 +334,12 @@ def preprocess_multimodal(
             replace_token = DEFAULT_IMAGE_TOKEN
             if data_args.mm_use_im_start_end:
                 replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
+
+            # For video: expand image token to num_frames tokens
+            if num_frames > 1:
+                # Replace single image token with multiple image tokens for video frames
+                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, DEFAULT_IMAGE_TOKEN * num_frames)
+
             sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
 
     return sources
@@ -807,36 +815,97 @@ class LazySupervisedDataset(Dataset):
         if isinstance(i, int):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
+
+        num_frames = 1  # Default for images
+        is_video = False  # Track if current sample is video
+
         if 'image' in sources[0]:
             image_file = self.list_data_dict[i]['image']
             img_path_idx = self.list_data_dict[i]['img_path_idx']
             image_folder = self.data_args.image_folder[img_path_idx]
             processor = self.data_args.image_processor
-            image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
-            image_size = image.size
-            if self.data_args.image_aspect_ratio == 'pad':
-                def expand2square(pil_img, background_color):
-                    width, height = pil_img.size
-                    if width == height:
-                        return pil_img
-                    elif width > height:
-                        result = Image.new(pil_img.mode, (width, width), background_color)
-                        result.paste(pil_img, (0, (width - height) // 2))
-                        return result
+            full_path = os.path.join(image_folder, image_file)
+
+            # Check if file exists
+            if not os.path.exists(full_path):
+                raise FileNotFoundError(f"Media file not found: {full_path}")
+
+            # Check if file is a video
+            if is_video_file(full_path):
+                # Load video frames
+                num_frames = self.data_args.num_video_frames
+                try:
+                    frames = load_video_frames(full_path, num_frames=num_frames)
+                except ImportError as e:
+                    raise ImportError(
+                        f"Video processing requires 'decord' library. "
+                        f"Install it with: pip install decord\n"
+                        f"Original error: {e}"
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"Failed to load video '{full_path}': {e}")
+
+                # Process each frame
+                image_tensors = []
+                for frame in frames:
+                    if self.data_args.image_aspect_ratio == 'pad':
+                        def expand2square(pil_img, background_color):
+                            width, height = pil_img.size
+                            if width == height:
+                                return pil_img
+                            elif width > height:
+                                result = Image.new(pil_img.mode, (width, width), background_color)
+                                result.paste(pil_img, (0, (width - height) // 2))
+                                return result
+                            else:
+                                result = Image.new(pil_img.mode, (height, height), background_color)
+                                result.paste(pil_img, ((height - width) // 2, 0))
+                                return result
+                        frame = expand2square(frame, tuple(int(x*255) for x in processor.image_mean))
+                        frame_tensor = processor.preprocess(frame, return_tensors='pt')['pixel_values'][0]
+                    elif self.data_args.image_aspect_ratio == "anyres" or "anyres_max" in self.data_args.image_aspect_ratio:
+                        frame_tensor = process_anyres_image(frame, self.data_args.image_processor, self.data_args.image_grid_pinpoints)
                     else:
-                        result = Image.new(pil_img.mode, (height, height), background_color)
-                        result.paste(pil_img, ((height - width) // 2, 0))
-                        return result
-                image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
-                image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
-            elif self.data_args.image_aspect_ratio == "anyres" or "anyres_max" in self.data_args.image_aspect_ratio:
-                image = process_anyres_image(image, self.data_args.image_processor, self.data_args.image_grid_pinpoints)
+                        frame_tensor = processor.preprocess(frame, return_tensors='pt')['pixel_values'][0]
+                    image_tensors.append(frame_tensor)
+
+                # Stack frames: (T, C, H, W) or for anyres: list of (N, C, H, W)
+                if isinstance(image_tensors[0], torch.Tensor) and image_tensors[0].ndim == 3:
+                    image = torch.stack(image_tensors, dim=0)  # (T, C, H, W)
+                else:
+                    # For anyres, keep as list
+                    image = image_tensors
+
+                image_size = frames[0].size  # Use first frame's size
+                is_video = True
             else:
-                image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                # Original image loading logic
+                image = Image.open(full_path).convert('RGB')
+                image_size = image.size
+                if self.data_args.image_aspect_ratio == 'pad':
+                    def expand2square(pil_img, background_color):
+                        width, height = pil_img.size
+                        if width == height:
+                            return pil_img
+                        elif width > height:
+                            result = Image.new(pil_img.mode, (width, width), background_color)
+                            result.paste(pil_img, (0, (width - height) // 2))
+                            return result
+                        else:
+                            result = Image.new(pil_img.mode, (height, height), background_color)
+                            result.paste(pil_img, ((height - width) // 2, 0))
+                            return result
+                    image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
+                    image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                elif self.data_args.image_aspect_ratio == "anyres" or "anyres_max" in self.data_args.image_aspect_ratio:
+                    image = process_anyres_image(image, self.data_args.image_processor, self.data_args.image_grid_pinpoints)
+                else:
+                    image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
 
             sources = preprocess_multimodal(
                 copy.deepcopy([e["conversations"] for e in sources]),
-                self.data_args)
+                self.data_args,
+                num_frames=num_frames)
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
         data_dict = preprocess(
@@ -851,11 +920,15 @@ class LazySupervisedDataset(Dataset):
         if 'image' in self.list_data_dict[i]:
             data_dict['image'] = image
             data_dict['image_size'] = image_size
+            data_dict['is_video'] = is_video
+            data_dict['num_frames'] = num_frames
         elif self.data_args.is_multimodal:
             # image does not exist in the data, but the model is multimodal
             crop_size = self.data_args.image_processor.crop_size
             data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
             data_dict['image_size'] = (crop_size['height'], crop_size['width'])
+            data_dict['is_video'] = False
+            data_dict['num_frames'] = 1
         return data_dict
 
 
@@ -886,9 +959,25 @@ class DataCollatorForSupervisedDataset(object):
         if 'image' in instances[0]:
             images = [instance['image'] for instance in instances]
             batch['image_sizes'] = [instance['image_size'] for instance in instances]
-            if all(x is not None and x.shape == images[0].shape for x in images):
+
+            # Check if we can stack tensors (same shape requirement)
+            # For videos: (T, C, H, W), for images: (C, H, W)
+            # Handle mixed batches or varying tensor dimensions
+            can_stack = True
+            if images:
+                first_shape = images[0].shape if isinstance(images[0], torch.Tensor) else None
+                for img in images:
+                    if not isinstance(img, torch.Tensor):
+                        can_stack = False
+                        break
+                    if img.shape != first_shape:
+                        can_stack = False
+                        break
+
+            if can_stack and images and isinstance(images[0], torch.Tensor):
                 batch['images'] = torch.stack(images)
             else:
+                # Keep as list for mixed video/image batches or anyres
                 batch['images'] = images
 
         return batch

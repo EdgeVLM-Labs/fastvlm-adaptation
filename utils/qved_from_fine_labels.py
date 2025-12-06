@@ -8,10 +8,12 @@ from collections import defaultdict
 BASE_DIR = Path("dataset")
 FINE_LABELS_JSON = BASE_DIR / "ground_truth.json"
 MANIFEST_JSON = BASE_DIR / "manifest.json"
-OUTPUT_TRAIN_JSON = BASE_DIR / "qved_train.json"
-OUTPUT_VAL_JSON = BASE_DIR / "qved_val.json"
-OUTPUT_TEST_JSON = BASE_DIR / "qved_test.json"
-USER_PROMPT_TEMPLATE = "Please evaluate the exercise form shown. What mistakes, if any, are present, and what corrections would you recommend?"
+OUTPUT_TRAIN_JSON = BASE_DIR / "fastvlm_train.json"
+OUTPUT_VAL_JSON = BASE_DIR / "fastvlm_val.json"
+OUTPUT_TEST_JSON = BASE_DIR / "fastvlm_test.json"
+
+# User prompt template with <image> token for video/image input
+USER_PROMPT_TEMPLATE = "<image>\nPlease evaluate the exercise form shown in this video. What mistakes, if any, are present, and what corrections would you recommend?"
 
 # Dataset split ratios (adjustable)
 TRAIN_RATIO = 0.60
@@ -75,8 +77,10 @@ def main():
 
         user_prompt = USER_PROMPT_TEMPLATE  # No longer using exercise name in prompt
 
+        # FastVLM training format uses "image" key even for videos
+        # The training code auto-detects video files by extension
         output_data.append({
-            "video": relative_video_path,
+            "image": relative_video_path,  # Changed from "video" to "image" for FastVLM compatibility
             "conversations": [
                 {"from": "human", "value": user_prompt},
                 {"from": "gpt", "value": assistant_answer}
