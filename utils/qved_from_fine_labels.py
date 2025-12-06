@@ -13,7 +13,7 @@ OUTPUT_VAL_JSON = BASE_DIR / "fastvlm_val.json"
 OUTPUT_TEST_JSON = BASE_DIR / "fastvlm_test.json"
 
 # User prompt template with <image> token for video/image input
-USER_PROMPT_TEMPLATE = "<image>\nPlease evaluate the exercise form shown in this video. What mistakes, if any, are present, and what corrections would you recommend?"
+USER_PROMPT_TEMPLATE = "<image>\nPlease evaluate the exercise form shown. What mistakes, if any, are present, and what corrections would you recommend?"
 
 # Dataset split ratios (adjustable)
 TRAIN_RATIO = 0.60

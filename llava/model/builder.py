@@ -157,7 +157,10 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
 
     image_processor = None
 
-    if 'llava' in model_name.lower():
+    # Check if model has vision tower (LLaVA-style model) regardless of model name
+    has_vision_tower = hasattr(model, 'get_vision_tower') and model.get_vision_tower() is not None
+
+    if 'llava' in model_name.lower() or has_vision_tower:
         mm_use_im_start_end = getattr(model.config, "mm_use_im_start_end", False)
         mm_use_im_patch_token = getattr(model.config, "mm_use_im_patch_token", True)
         if mm_use_im_patch_token:

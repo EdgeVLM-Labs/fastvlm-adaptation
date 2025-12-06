@@ -161,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument("--input-file", type=str, required=True,
                         help="Path to input video (.mp4, .avi, etc.) or image file")
     parser.add_argument("--prompt", type=str,
-                        default="Please evaluate the exercise form shown in this video. What mistakes, if any, are present, and what corrections would you recommend?",
+                        default="Please evaluate the exercise form shown. What mistakes, if any, are present, and what corrections would you recommend?",
                         help="Prompt for the model")
     parser.add_argument("--conv-mode", type=str, default="qwen_2",
                         help="Conversation template mode")
