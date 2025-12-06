@@ -74,6 +74,8 @@ class ModelArguments:
 class DataArguments:
     data_path: Optional[List[str]] = field(default=None,
                            metadata={"help": "Optional list of paths to the training data."})
+    validation_data_path: Optional[str] = field(default=None,
+                           metadata={"help": "Optional path to the validation data."})
     lazy_preprocess: bool = False
     is_multimodal: bool = False
     image_folder: Optional[List[str]] = field(default=None)
@@ -1001,9 +1003,18 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
     train_dataset = LazySupervisedDataset(tokenizer=tokenizer,
                                           data_path=data_args.data_path,
                                           data_args=data_args)
+
+    # Create eval dataset if validation_data_path is provided
+    eval_dataset = None
+    if data_args.validation_data_path:
+        eval_dataset = LazySupervisedDataset(tokenizer=tokenizer,
+                                             data_path=data_args.validation_data_path,
+                                             data_args=data_args)
+        rank0_print(f"Created eval dataset with {len(eval_dataset)} samples")
+
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     return dict(train_dataset=train_dataset,
-                eval_dataset=None,
+                eval_dataset=eval_dataset,
                 data_collator=data_collator)
 
 
