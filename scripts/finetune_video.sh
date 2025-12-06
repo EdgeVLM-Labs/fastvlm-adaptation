@@ -37,7 +37,7 @@ MODEL_MAX_LENGTH=2048
 # WandB configuration
 export WANDB_PROJECT="fastvlm"
 export WANDB_ENTITY="fyp-21"
-export WANDB_NAME="qved-finetune-$(date +%Y%m%d_%H%M%S)"
+export WANDB_NAME="fastvlm-finetune-${TIMESTAMP}"
 export WANDB_LOG_MODEL="end"  # Log model at end of training (options: false, end, checkpoint)
 
 # Evaluation configuration
@@ -83,7 +83,7 @@ cat > "$HPARAMS_FILE" << EOF
   "eval_steps": $EVAL_STEPS,
   "wandb_project": "$WANDB_PROJECT",
   "wandb_entity": "$WANDB_ENTITY",
-  "wandb_run_name": "$WANDB_NAME"
+  "wandb_run_name": "fastvlm-finetune-${TIMESTAMP}"
 }
 EOF
 
@@ -179,6 +179,10 @@ echo ""
 echo "=============================================="
 echo "HuggingFace Hub Upload"
 echo "=============================================="
+
+# Generate HF repo name with same timestamp
+HF_REPO_NAME="fastvlm-finetune-${TIMESTAMP}"
+
 read -p "Would you like to upload the model to HuggingFace? (y/n) " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -192,8 +196,10 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     fi
 
     echo "Uploading to HuggingFace Hub..."
+    echo "Repository: EdgeVLM-Labs/${HF_REPO_NAME}"
     python utils/hf_upload.py \
         --model_path "$OUTPUT_DIR" \
+        --repo_name "$HF_REPO_NAME" \
         --org "EdgeVLM-Labs" \
         $PRIVATE_FLAG
 
@@ -203,13 +209,13 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     else
         echo ""
         echo "⚠ Upload failed. You can try again later with:"
-        echo "  python utils/hf_upload.py --model_path $OUTPUT_DIR --org EdgeVLM-Labs"
+        echo "  python utils/hf_upload.py --model_path $OUTPUT_DIR --repo_name $HF_REPO_NAME --org EdgeVLM-Labs"
     fi
 else
     echo ""
     echo "Skipping HuggingFace upload."
     echo "To upload later, run:"
-    echo "  python utils/hf_upload.py --model_path $OUTPUT_DIR --org EdgeVLM-Labs"
+    echo "  python utils/hf_upload.py --model_path $OUTPUT_DIR --repo_name $HF_REPO_NAME --org EdgeVLM-Labs"
 fi
 
 echo ""

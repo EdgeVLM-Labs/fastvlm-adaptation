@@ -29,7 +29,7 @@ BASE_MODEL_REF = "checkpoints/llava-fastvithd_0.5b_stage3"
 def get_default_repo_name() -> str:
     """Generate a default repository name with timestamp."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"fastvlm-exercise-{timestamp}"
+    return f"fastvlm-finetune-{timestamp}"
 
 
 def check_hf_login() -> bool:
