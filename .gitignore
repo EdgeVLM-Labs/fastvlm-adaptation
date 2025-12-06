@@ -143,3 +143,4 @@ app/FastVLM/model
 #Files and folders
 checkpoints/
 images
+finetune/__pycache__/
