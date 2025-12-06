@@ -38,7 +38,7 @@ MODEL_MAX_LENGTH=2048
 export WANDB_PROJECT="fastvlm"
 export WANDB_ENTITY="fyp-21"
 export WANDB_NAME="qved-finetune-$(date +%Y%m%d_%H%M%S)"
-export WANDB_LOG_MODEL="true"
+export WANDB_LOG_MODEL="end"  # Log model at end of training (options: false, end, checkpoint)
 
 # Evaluation configuration
 EVAL_STRATEGY="steps"
