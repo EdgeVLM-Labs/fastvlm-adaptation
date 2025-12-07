@@ -14,7 +14,7 @@ This document describes the modifications made to adapt FastVLM's training pipel
 
 ## Background
 
-FastVLM is a vision-language model that uses FastViT-HD as its vision encoder, producing significantly fewer visual tokens per image (approximately 100 tokens) compared to standard CLIP-based models (576 tokens). This efficiency makes it particularly well-suited for video understanding tasks where multiple frames need to be processed within the same context window.
+FastVLM is a vision-language model that uses FastViT-HD as its vision encoder, producing significantly fewer visual tokens per image (approximately 100 tokens) compared to standard CLIP-based models (576 tokens).
 
 The original FastVLM training code was designed exclusively for image-text pair fine-tuning. This document describes the changes required to enable video fine-tuning.
 
@@ -67,7 +67,6 @@ The adaptation follows the **"frames as images"** approach, also known as **spar
 
 1. **Simplicity**: No architectural changes required to the vision encoder or language model.
 2. **Compatibility**: Existing image-trained models can be directly fine-tuned on videos.
-3. **Memory Efficiency**: FastVLM's compact visual representation (approximately 100 tokens per frame) allows processing 8 frames in approximately 800 tokens, compared to 4,608 tokens for CLIP-based models.
 
 ### How It Works
 
@@ -277,8 +276,14 @@ The "frames as images" approach used in this adaptation is established in the vi
 
 > 2. **Li, K., Wang, Y., He, Y., Li, Y., Wang, Y., Liu, Y., ... & Qiao, Y. (2023). "VideoChat: Chat-Centric Video Understanding."** _arXiv preprint arXiv:2305.06355._ This work extends image-language models to video by processing uniformly sampled frames through a frozen image encoder and concatenating the resulting features, similar to the approach implemented here.
 
-These works validate that treating videos as sequences of independently processed frames, followed by concatenation of visual features, is an effective strategy for adapting image-language models to video understanding tasks.
+### Code & Implementation Resources
 
+For further reading and reference implementations of similar video adaptation techniques:
+
+- **[Video-LLaVA](https://github.com/PKU-YuanGroup/Video-LLaVA)**: A direct adaptation of LLaVA for video that projects video features into the language feature space. Their `TRAIN_AND_VALIDATE.md` provides excellent guidance on data preparation and training pipelines.
+- **[Video-ChatGPT](https://github.com/mbzuai-oryx/Video-ChatGPT)**: Implements a video adapter to connect visual encoders with LLMs using spatiotemporal representations.
+- **[LLaVA-NeXT (Video Support)](https://github.com/LLaVA-VL/LLaVA-NeXT)**: The official LLaVA repository's implementation of video support, which treats video frames as a grid of images (AnyRes) or sequences.
+- **[Decord Documentation](https://github.com/dmlc/decord)**: The library used in this project for efficient video loading and frame sampling.
 
 ## Usage
 
