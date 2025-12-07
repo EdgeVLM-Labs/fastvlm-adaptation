@@ -81,7 +81,7 @@ def run_inference(
     video_path: str,
     prompt: str,
     device: str = "cuda",
-    max_new_tokens: int = 512,
+    max_new_tokens: int = 64,
     num_frames: int = 4,
     conv_mode: str = "qwen_2"
 ):
