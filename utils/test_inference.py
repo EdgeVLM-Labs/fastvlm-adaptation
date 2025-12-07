@@ -118,14 +118,24 @@ def run_inference(
         image_tensor = torch.stack(image_tensors, dim=0)
         image_sizes = [frames[0].size] * num_loaded_frames
 
-        # Construct prompt with multiple image tokens for video frames
+        # Handle prompt - check if it already contains image token
         qs = prompt
-        if model.config.mm_use_im_start_end:
-            image_tokens = (DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN) * num_loaded_frames
-            qs = image_tokens + '\n' + qs
+        if DEFAULT_IMAGE_TOKEN in qs:
+            # Prompt already has image token(s) - replace single <image> with multiple for video
+            if model.config.mm_use_im_start_end:
+                image_tokens = (DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN) * num_loaded_frames
+            else:
+                image_tokens = DEFAULT_IMAGE_TOKEN * num_loaded_frames
+            # Replace single <image> with multiple image tokens for video frames
+            qs = qs.replace(DEFAULT_IMAGE_TOKEN, image_tokens, 1)
         else:
-            image_tokens = DEFAULT_IMAGE_TOKEN * num_loaded_frames
-            qs = image_tokens + '\n' + qs
+            # No image token in prompt - add them
+            if model.config.mm_use_im_start_end:
+                image_tokens = (DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN) * num_loaded_frames
+                qs = image_tokens + '\n' + qs
+            else:
+                image_tokens = DEFAULT_IMAGE_TOKEN * num_loaded_frames
+                qs = image_tokens + '\n' + qs
     else:
         # Single image
         image = Image.open(video_path).convert('RGB')
@@ -133,12 +143,15 @@ def run_inference(
         image_sizes = [image.size]
         num_loaded_frames = 1
 
-        # Construct prompt for single image
+        # Handle prompt - check if it already contains image token
         qs = prompt
-        if model.config.mm_use_im_start_end:
-            qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
-        else:
-            qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
+        if DEFAULT_IMAGE_TOKEN not in qs:
+            # No image token - add one
+            if model.config.mm_use_im_start_end:
+                qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
+            else:
+                qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
+        # If image token already exists, use prompt as-is for single image
 
     # Build conversation
     conv = conv_templates[conv_mode].copy()
