@@ -246,7 +246,8 @@ def main():
     print("\n🎬 Running inference...")
 
     for item in tqdm(test_data, desc="Processing videos"):
-        video_rel_path = item['video']
+        # FastVLM format uses 'image' key for both images and videos
+        video_rel_path = item.get('image') or item.get('video')
         video_path = str(Path(args.data_path) / video_rel_path)
 
         # Extract prompt and ground truth
