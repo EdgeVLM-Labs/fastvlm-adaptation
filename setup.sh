@@ -25,7 +25,7 @@ conda create -n fastvlm python=3.10
 conda activate fastvlm
 pip install --upgrade pip
 pip install -e .
-pip install decord deepspeed matplotlib wandb
+pip install decord deepspeed matplotlib wandb evaluate bert-score nltk
 
 apt install unzip
 

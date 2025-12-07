@@ -254,6 +254,14 @@ def main():
 
     print(f"Total test samples: {len(test_data)}")
 
+    # Custom inference prompt for structured output format
+    # This ensures output matches ground truth format: (exercise) - (feedback)
+    INFERENCE_PROMPT = (
+        "Analyze this exercise video and provide feedback in the exact format: "
+        "(exercise name) - (brief feedback about form or issues). "
+        "Be concise and specific."
+    )
+
     # Run inference
     results = []
     print("\n🎬 Running inference...")
@@ -263,10 +271,13 @@ def main():
         video_rel_path = item.get('image') or item.get('video')
         video_path = str(Path(args.data_path) / video_rel_path)
 
-        # Extract prompt and ground truth
+        # Extract ground truth from conversations
         conversations = item['conversations']
-        prompt = conversations[0]['value']
+        original_prompt = conversations[0]['value']
         ground_truth = conversations[1]['value']
+
+        # Use custom inference prompt for structured output
+        prompt = INFERENCE_PROMPT
 
         try:
             # Run inference
