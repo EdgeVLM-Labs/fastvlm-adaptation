@@ -139,3 +139,10 @@ dmypy.json
 
 # FastVLM models
 app/FastVLM/model
+
+#Files and folders
+checkpoints/
+images
+finetune/__pycache__/
+dataset/
+models/

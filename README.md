@@ -54,9 +54,10 @@ bash get_models.sh   # Files will be downloaded to `checkpoints` directory.
 
 ### Usage Example
 To run inference of PyTorch checkpoint, follow the instruction below
+
 ```bash
-python predict.py --model-path /path/to/checkpoint-dir \
-                  --image-file /path/to/image.png \
+python predict.py --model-path checkpoints/llava-fastvithd_0.5b_stage3 \
+                  --image-file images/wonders.png \
                   --prompt "Describe the image."
 ```
 
